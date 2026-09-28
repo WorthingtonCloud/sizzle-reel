@@ -1,8 +1,7 @@
+https://github.com/user-attachments/assets/c434ba30-abde-4706-abcb-e54ae47fa280
+
 <p align="center">
-  <a href="media/lab-reel-widescreen.mp4"><img src="media/lab-reel-teaser.gif" width="800" alt="A clip from the reel: an agent at the center of three memory rings, with the title 5,303 pieces from 461 past sessions"></a>
-</p>
-<p align="center">
-  <b>Watch the reel:</b> <a href="media/lab-reel-widescreen.mp4">widescreen</a> · <a href="media/lab-reel-vertical.mp4">vertical</a> (44 seconds, sound on)
+  44 seconds, sound on. On a phone? Watch the <a href="media/lab-reel-vertical.mp4">vertical cut</a>.
 </p>
 
 # sizzle-reel
