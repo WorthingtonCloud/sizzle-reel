@@ -1,0 +1,11 @@
+node_modules/
+.env
+rec/
+seg/
+titles/
+qa/
+out/
+fonts/
+music/
+clips/
+stills/

@@ -1,0 +1,8 @@
+{
+  "name": "sizzle-reel-kit",
+  "private": true,
+  "description": "Build kit for the sizzle-reel skill: titles, code-drawn scenes and page recordings need a headless Chrome.",
+  "dependencies": {
+    "puppeteer": "^24.0.0"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "name": "example-reel",
+  "version": 1,
+  "size": [1080, 1920],
+  "fps": 30,
+  "budget_usd": 15,
+  "palette": {
+    "ground": "#111114",
+    "card": "#18181b",
+    "line": "#2c2c30",
+    "dim": "#8a8a8e",
+    "ink": "#f4f4f2",
+    "accent": "#e5484d"
+  },
+  "font": { "family": "Archivo", "css": "fonts/font.css" },
+  "music": { "file": "music/take1.mp3", "beat": 0.63, "first_hit": 7.65, "fade": 2.2 },
+  "titles": {
+    "t_open":    { "kind": "lower", "text": "Most tools<br>start from zero." },
+    "t_open2":   { "kind": "lower", "text": "Some remember<br>your name." },
+    "t_turn":    { "kind": "card",  "text": "This one<br>remembers<br><span class=a>everything.</span>" },
+    "t_layers":  { "kind": "lower", "text": "Three layers<br>of memory." },
+    "t_plugged": { "kind": "lower", "text": "Plugged into<br><span class=a>everything.</span>" },
+    "t_page":    { "kind": "lower", "text": "Real work,<br>on the record." },
+    "t_sources": { "kind": "lower", "text": "Every source<br>published." },
+    "t_same":    { "kind": "card",  "text": "This video?<br><span class=a>Same agent.</span>" }
+  },
+  "scenes": {
+    "chat": {
+      "header": "New session",
+      "placeholder": "Ask anything",
+      "cycles": [
+        { "q": "Where did we leave off?", "a": "I don't have any memory of past conversations." },
+        { "q": "Remember Tuesday's fix?", "a": "I can't see previous chats." },
+        { "q": "What did we decide?", "a": "Could you give me more context?" }
+      ]
+    },
+    "hub": {
+      "center": "AGENT",
+      "rings": ["LAYER 1", "LAYER 2", "LAYER 3"],
+      "nodes": ["Files", "Notes", "Servers", "Models", "Data", "Tools", "Wiki", "Video"]
+    },
+    "sources": {
+      "heading": "CLAIM",
+      "cards": [
+        { "k": "PAPER", "t": "Papers" }, { "k": "CODE", "t": "Code" }, { "k": "DATA", "t": "Raw data" },
+        { "k": "FILING", "t": "Filings" }, { "k": "VIDEO", "t": "Talks" }, { "k": "METHOD", "t": "Every step" }
+      ]
+    },
+    "endcard": { "wordmark": "YOUR NAME", "url": "example.com", "logo": "logo.svg" }
+  },
+  "shots": {
+    "page": { "url": "https://example.com", "from": 0, "to": 400, "frames": 90 }
+  },
+  "segments": [
+    { "name": "s01_open",    "to_hit": true,  "source": { "scene": "chat" },    "titles": [["t_open", 0, 4.0], ["t_open2", 4.0, "end"]] },
+    { "name": "s02_turn",    "beats": 3,      "source": { "card": "t_turn" } },
+    { "name": "s03_hub",     "beats": 12,     "source": { "scene": "hub" },     "titles": [["t_layers", 0, 6], ["t_plugged", 6, "end"]] },
+    { "name": "s04_page",    "beats": 5,      "source": { "shot": "page" },     "titles": [["t_page", 0, "end"]] },
+    { "name": "s05_sources", "beats": 6,      "source": { "scene": "sources" }, "titles": [["t_sources", 0, "end"]] },
+    { "name": "s06_grid",    "beats": 3,      "source": { "grid": ["rec/chat/f0040.jpg", "rec/hub/f0200.jpg", "rec/page/f0045.jpg",
+                                                                  "rec/sources/f0100.jpg", "rec/chat/f0120.jpg", "rec/hub/f0100.jpg",
+                                                                  "rec/page/f0080.jpg", "rec/sources/f0040.jpg", "rec/hub/f0030.jpg"] } },
+    { "name": "s07_same",    "beats": 3,      "source": { "card": "t_same" } },
+    { "name": "s08_end",     "secs": 3.0,     "source": { "scene": "endcard" } }
+  ],
+  "cover": { "at": 2.0 }
+}
