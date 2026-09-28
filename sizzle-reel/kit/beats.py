@@ -75,7 +75,15 @@ pick = next((g for g, lift in cands if g >= 3.0 and lift > -5), cands[0][0] if c
 if "--hit" in sys.argv:
     pick = float(sys.argv[sys.argv.index("--hit") + 1])
 
-print(f"beat       {beat:.3f}s  ({60 / beat:.1f} BPM)")
+# Refine the beat LENGTH across 16 and 32 beats (the hit above is a point in time and stays put). One beat's lag
+# is only as precise as one analysis frame (~23 ms), and that error adds up over a reel: the Lab reel's first
+# grid (0.628s) drifted ~0.2s late by its close. The lag of 32 whole beats, divided by 32, measured 0.6317s,
+# and loop joins then landed within a millisecond of the grid.
+for nb in (16, 32):
+    if (nb + 0.2) * beat < dur / 2:
+        lo2, hi2 = int((nb - 0.2) * beat * FPS), int((nb + 0.2) * beat * FPS) + 1  # ±a fifth of a beat: never the neighbor
+        beat = (lo2 + int(np.argmax(ac[lo2:hi2]))) / FPS / nb
+print(f"beat       {beat:.4f}s  ({60 / beat:.1f} BPM)")
 print(f"first hit  {pick:.2f}s   ← the opening runs until here")
 print("candidates " + ", ".join(f"{g:.2f}s" for g, _ in cands[:8]))
 print(f"length     {dur:.1f}s   (about {int((dur - pick) / beat)} beats after the hit)")

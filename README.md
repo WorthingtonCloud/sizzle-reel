@@ -1,7 +1,7 @@
 https://github.com/user-attachments/assets/c434ba30-abde-4706-abcb-e54ae47fa280
 
 <p align="center">
-  44 seconds, sound on. On a phone? Watch the <a href="media/lab-reel-vertical.mp4">vertical cut</a>.
+  58 seconds, sound on. On a phone? Watch the <a href="media/lab-reel-vertical.mp4">vertical cut</a>.
 </p>
 
 # sizzle-reel
@@ -11,8 +11,8 @@ edit, and the quality check. You bring the idea and your notes. You never open a
 
 The reel above was made this way, for [The Lab](https://lab.worthington.cloud). An agent wrote it, made the
 music, drew every diagram and title in code, recorded the real website, prompted three short cinematic
-shots, cut all of it to the beat, and checked every frame. It took twelve versions to get right and about
-$13 in generation costs. Every cut after the fourth was free. This skill is what those twelve versions
+shots, cut all of it to the beat, and checked every frame. It took thirteen versions to get right and about
+$13 in generation costs. Every cut after the fourth was free. This skill is what those versions
 taught, packaged so your agent starts where that one finished.
 
 ## Install it

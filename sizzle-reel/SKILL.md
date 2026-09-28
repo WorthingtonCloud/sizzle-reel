@@ -12,7 +12,7 @@ description: >
 
 # sizzle-reel
 
-A 30–45 second reel your agent makes by itself. You bring the idea, your taste, and your notes. The agent
+A 30–60 second reel your agent makes by itself. You bring the idea, your taste, and your notes. The agent
 writes it, scores it, draws it, records it, cuts it, and checks it. You never touch a timeline.
 
 **What makes it look expensive instead of generated:** real material (your actual pages, your actual
@@ -43,7 +43,7 @@ correct. After **every** answer, write it to `brainstorm-<date>.md` (their words
 question, read it instead of asking. Keep it to about eight questions:
 
 1. **What is the reel for, who watches it, and where will it post?** This sets the shape: vertical 9:16 for
-   phones and feeds, widescreen 16:9 for a website or a talk, 30–45 seconds either way.
+   phones and feeds, widescreen 16:9 for a website or a talk, 30–60 seconds either way. The words set the length, not the other way around.
 2. **What should a stranger *get* by the end?** Not "be impressed": what the thing is, why it exists, what's
    in it for them. The most common failure is a reel that shows off, then shows a website, and leaves the
    viewer asking "what's this for?"
@@ -90,7 +90,13 @@ python3 beats.py music/take2.mp3 --write    # beat length + the first big hit �
 ```
 
 The opening runs until the first hit; every later segment is a whole number of beats. If the human hears
-the drop somewhere else, `--hit <seconds> --write`.
+the drop somewhere else, `--hit <seconds> --write`. The beat length is refined across 32 beats: measured from one
+beat, a grid that is off by 4 ms lands the last cuts of a minute-long reel about a fifth of a second late.
+
+**If the cut outgrows the song**, don't loop it blindly or fade early. Replay whole bars where the drums and tone
+match on both sides of the join, placed *before* the build, so the song still has one build, one drop and one
+final hit, and pin the twist to the drop and the end card to the final hit. Or extend the kept take with Suno's
+extend call (about 6 cents; it needs the take's audio id, which `gen.py` writes to the ledger).
 
 ## Step 4: build everything free first
 
@@ -143,6 +149,7 @@ free (words, timing, drawn scenes). Say the cost of any note that isn't, before 
 | A first frame that's an empty screen | The hook title on screen from frame one: it's the preview in chat apps and feeds. Upload the cover image where the platform allows |
 | Showing the closing line early (e.g. a page whose headline *is* the closing line) | Spend it once, at the close |
 | A line that dates itself ("155 days") or says nothing ("The models.") | Cut it. Let the picture carry it |
+| A title on screen for under two seconds, or a number written as a sentence | About two seconds for a short title, more for a long one; a number as one big figure. Two viewers called a 44-second cut with sub-second titles "too fast to follow"; the fix ran 58 seconds |
 | A grid with a hole in it | Fill every tile, and let the last one land with time to hold |
 | Blacks that don't match between shots | Draw on the site's own ground color; the build puts every segment on one brightness scale; `qa.py` measures it |
 | Long labels on a ring or a shape | Short labels sitting on their own ring; the long version goes in the title. A label wider than its ring makes a circle read tall |

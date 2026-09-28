@@ -152,8 +152,10 @@ elif a.cmd == "music":
     for i, t in enumerate(res.get("data", []), have + 1):
         fetch(t["audio_url"], f"music/take{i}.mp3")
         print(f"music/take{i}.mp3")
+    # Keep each take's audio id: extending a take later (Suno "extend") needs it, and kie.ai forgets it after 14 days.
+    ids = " ".join(f"take{i}={t.get('id', '?')}" for i, t in enumerate(res.get("data", []), have + 1))
     log(shot=f"music takes {have + 1}-{have + len(res.get('data', []))}", tool="kie.ai", model="suno V6", resolution="n/a",
-        seconds=a.duration, cost_usd=0.06, why=a.style[:120])
+        seconds=a.duration, cost_usd=0.06, why=f"{ids} · {a.style[:120]}")
 
 elif a.cmd == "still":
     if not (a.prompt and a.out):
