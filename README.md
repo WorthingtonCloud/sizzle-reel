@@ -1,4 +1,4 @@
-https://github.com/user-attachments/assets/c434ba30-abde-4706-abcb-e54ae47fa280
+https://github.com/user-attachments/assets/634393ea-f13a-473c-b06a-6160c80d23dc
 
 <p align="center">
   58 seconds, sound on. On a phone? Watch the <a href="media/lab-reel-vertical.mp4">vertical cut</a>.
