@@ -83,6 +83,24 @@ for nb in (16, 32):
     if (nb + 0.2) * beat < dur / 2:
         lo2, hi2 = int((nb - 0.2) * beat * FPS), int((nb + 0.2) * beat * FPS) + 1  # ±a fifth of a beat: never the neighbor
         beat = (lo2 + int(np.argmax(ac[lo2:hi2]))) / FPS / nb
+# Which drum is the grid on? Cutting "on the beat" means on the hit a viewer hears, so measure each band at the grid
+# and half a beat off it. Measured on the Lab reel's take 7 (Sep 29): the kick leans onto this grid (1.3–1.6 : 1),
+# while claps and hi-hats land on every half beat and can't tell on from off. A kick-phase tool that called this grid
+# "half a beat late" was wrong on that soft kick: trust a measurement you can see, and the ear, over one number.
+def band_flux(lo_hz, hi_hz):
+    e = 10 * np.log10((P[:, int(lo_hz / (SR / N)) + 1:int(hi_hz / (SR / N)) + 1] ** 2).sum(axis=1) + 1e-9)
+    return np.concatenate([[0], np.maximum(np.diff(e), 0)])
+def at_grid(fl, ph):
+    idx = ((ph + np.arange(0, dur - ph, beat)) * FPS).astype(int)
+    idx = idx[(idx > 0) & (idx < len(fl))]
+    return np.mean([fl[max(0, k - 1):k + 2].max() for k in idx])
+grid_ph = pick % beat
+print("drums vs the grid (onset strength ON the grid : half a beat OFF it):")
+for name, lo_hz, hi_hz in (("kick", 30, 120), ("clap/snare", 1500, 5000), ("hi-hats", 8000, 11000)):
+    fl = band_flux(lo_hz, hi_hz)
+    on, off = at_grid(fl, grid_ph), at_grid(fl, (grid_ph + beat / 2) % beat)
+    print(f"  {name:11s} {on / max(off, 1e-9):4.1f} : 1{'   ← cuts land with this' if on > 1.25 * off else '   (off the grid)' if off > 1.25 * on else ''}")
+print()
 print(f"beat       {beat:.4f}s  ({60 / beat:.1f} BPM)")
 print(f"first hit  {pick:.2f}s   ← the opening runs until here")
 print("candidates " + ", ".join(f"{g:.2f}s" for g, _ in cands[:8]))

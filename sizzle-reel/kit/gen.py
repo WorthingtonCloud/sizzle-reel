@@ -50,6 +50,7 @@ def fetch(url, out):
 
 def host(path):
     """Video models need a public image URL; kie.ai's upload endpoint provides one."""
+    print(f"  uploading {path} to kie.ai's file host so the model can read it (it leaves this machine)", flush=True)
     ext = os.path.splitext(path)[1].lstrip(".").lower().replace("jpg", "jpeg")
     r = call(KIE_UP, {"base64Data": f"data:image/{ext};base64," + base64.b64encode(open(path, "rb").read()).decode(),
                       "uploadPath": "reel", "fileName": os.path.basename(path)}, {"Authorization": f"Bearer {key('KIE_AI_API_KEY')}"})
@@ -108,19 +109,31 @@ def spent():
 
 
 def log(**row):
+    """Written the moment a job is submitted: the vendor bills on submit, so a crash or a timeout while
+    waiting must still count toward the budget. Returns the row's index for amend()."""
     new = not os.path.exists(LEDGER)
     with open(LEDGER, "a", newline="") as f:
         w = csv.DictWriter(f, COLS)
         if new:
             w.writeheader()
         w.writerow({"date": datetime.date.today().isoformat(), "kept": "pending", **row})
+    return sum(1 for _ in csv.DictReader(open(LEDGER))) - 1
+
+
+def amend(i, **fields):
+    rows = list(csv.DictReader(open(LEDGER)))
+    rows[i].update(fields)
+    with open(LEDGER, "w", newline="") as f:
+        w = csv.DictWriter(f, COLS)
+        w.writeheader()
+        w.writerows(rows)
 
 
 def gate(est, what, a):
     budget = json.load(open("reel.json")).get("budget_usd") if os.path.exists("reel.json") else None
     so_far = spent()
-    print(f"{what}: about ${est:.2f}. Spent so far: ${so_far:.2f}" + (f" of a ${budget:.2f} budget." if budget else "."))
-    if budget and so_far + est > budget and not a.over:
+    print(f"{what}: about ${est:.2f}. Spent so far: ${so_far:.2f}" + (f" of a ${budget:.2f} budget." if budget is not None else "."))
+    if budget is not None and so_far + est > budget and not a.over:
         sys.exit("⛔ that would pass the budget. Ask the human; re-run with --over only if they say so.")
     if not a.yes:
         sys.exit("Not spent. Re-run with --yes once the human has approved this cost.")
@@ -146,6 +159,8 @@ elif a.cmd == "music":
     # the model name is NESTED: outer "ai-music-api/generate", inner "V6". A top-level "V6" returns 422.
     tid = kie_task("ai-music-api/generate", {"custom_mode": True, "instrumental": True, "title": a.title, "style": a.style,
                                              "negative_tags": a.negative, "duration": a.duration, "model": "V6"})
+    row = log(shot="music (submitted)", tool="kie.ai", model="suno V6", resolution="n/a", seconds=a.duration, cost_usd=0.06,
+              why=f"task {tid} · {a.style[:120]}")
     res = kie_wait(tid, "music")
     os.makedirs("music", exist_ok=True)
     have = len([f for f in os.listdir("music") if f.startswith("take") and f.endswith(".mp3")])
@@ -154,8 +169,7 @@ elif a.cmd == "music":
         print(f"music/take{i}.mp3")
     # Keep each take's audio id: extending a take later (Suno "extend") needs it, and kie.ai forgets it after 14 days.
     ids = " ".join(f"take{i}={t.get('id', '?')}" for i, t in enumerate(res.get("data", []), have + 1))
-    log(shot=f"music takes {have + 1}-{have + len(res.get('data', []))}", tool="kie.ai", model="suno V6", resolution="n/a",
-        seconds=a.duration, cost_usd=0.06, why=f"{ids} · {a.style[:120]}")
+    amend(row, shot=f"music takes {have + 1}-{have + len(res.get('data', []))}", why=f"{ids} · {a.style[:120]}")
 
 elif a.cmd == "still":
     if not (a.prompt and a.out):
@@ -165,11 +179,12 @@ elif a.cmd == "still":
     model = "seedream/5-pro-text-to-image"
     if a.ref:
         model, inp["image_urls"] = "seedream/5-pro-image-to-image", [host(a.ref)]
-    res = kie_wait(kie_task(model, inp), os.path.basename(a.out))
+    tid = kie_task(model, inp)
+    log(shot=os.path.basename(a.out), tool="kie.ai", model=model, resolution=a.ar, seconds=0, cost_usd=0.14, why=f"task {tid} · {a.prompt[:120]}")
+    res = kie_wait(tid, os.path.basename(a.out))
     urls = res.get("resultUrls") or res.get("result_urls") or []
     fetch(urls[0], a.out)
     print(a.out)
-    log(shot=os.path.basename(a.out), tool="kie.ai", model=model, resolution=a.ar, seconds=0, cost_usd=0.14, why=a.prompt[:120])
 
 elif a.cmd == "clip":
     if not (a.image and a.prompt and a.out):
@@ -183,20 +198,21 @@ elif a.cmd == "clip":
         r = call(HF, body, {"Authorization": f"Key {key('HIGGSFIELD_API_KEY')}"})
         rid = r.get("request_id") or r.get("id")
         print(f"submitted {rid}", flush=True)
+        log(shot=os.path.basename(a.out), tool=a.via, model="seedance-2.5 image-to-video", resolution=a.res, seconds=a.dur,
+            cost_usd=round(est, 2), why=f"request {rid} · {a.prompt[:120]}")
 
         def fn():
             s = call(HF_STATUS.format(rid), headers={"Authorization": f"Key {key('HIGGSFIELD_API_KEY')}"})
             st = s.get("status")
             return st, (s.get("video") or {}).get("url") if st == "completed" else None
         fetch(poll(os.path.basename(a.out), fn), a.out)
-        model = "seedance-2.5 image-to-video"
     else:
         est = 0.80
         gate(est, f"One {a.dur}s clip (Kling 2.1 Pro on kie.ai)", a)
-        res = kie_wait(kie_task("kling/v2-1-pro", {"prompt": a.prompt, "image_url": host(a.image), "duration": str(a.dur),
-                       "negative_prompt": "blur, distortion, warping, morphing, text, watermark, cut, scene change", "cfg_scale": 0.5}),
-                       os.path.basename(a.out))
+        tid = kie_task("kling/v2-1-pro", {"prompt": a.prompt, "image_url": host(a.image), "duration": str(a.dur),
+                       "negative_prompt": "blur, distortion, warping, morphing, text, watermark, cut, scene change", "cfg_scale": 0.5})
+        log(shot=os.path.basename(a.out), tool=a.via, model="kling v2.1 pro", resolution=a.res, seconds=a.dur, cost_usd=est,
+            why=f"task {tid} · {a.prompt[:120]}")
+        res = kie_wait(tid, os.path.basename(a.out))
         fetch((res.get("resultUrls") or [])[0], a.out)
-        model = "kling v2.1 pro"
     print(a.out, "— now run: python3 qa.py", a.out, "--clip")
-    log(shot=os.path.basename(a.out), tool=a.via, model=model, resolution=a.res, seconds=a.dur, cost_usd=round(est, 2), why=a.prompt[:120])

@@ -24,14 +24,18 @@ stranger why the thing exists and what they get from it, tested on someone who h
 
 ```bash
 mkdir -p reels/<name> && cp -R <this skill>/kit/ reels/<name>/ && cd reels/<name>
-npm install                      # puppeteer, for titles, scenes and page recordings
+npm install                      # HyperFrames (renders the reel), GSAP, and puppeteer (records pages). Node 22+
 pip install numpy                # for beats.py
 node doctor.mjs                  # says plainly what's missing
-node fonts.mjs "Archivo"         # or the brand's Google Font
+node fonts.mjs "Archivo"         # or the brand's Google Font; then set reel.json → font.css
+node fonts.mjs "JetBrains Mono" 500,700   # the small label face (reel.json → mono)
 ```
 
 Everything runs from the reel folder and reads one file, `reel.json`: size, palette, font, music grid,
 titles, scenes, page recordings, and the segment list. Edit that file; don't edit the scripts per reel.
+`build.mjs` turns it into ONE [HyperFrames](https://github.com/heygen-com/hyperframes) composition (an HTML page
+with a single GSAP timeline, `comp/index.html`) and renders it frame by frame in headless Chrome, music included.
+HyperFrames is free and open source; `build.mjs` turns off its anonymous telemetry.
 Keys go in `.env` in the reel folder, only if you generate anything paid (`KIE_AI_API_KEY`,
 `HIGGSFIELD_API_KEY`). A reel from drawn scenes, recordings and the human's own media needs no key at all.
 
@@ -100,15 +104,31 @@ extend call (about 6 cents; it needs the take's audio id, which `gen.py` writes 
 
 ## Step 4: build everything free first
 
-- **Drawn scenes** (`motion.html`): `chat` (a session that keeps forgetting), `hub` (the thing in the
+- **Drawn scenes** (`reel.js`): `chat` (a session that keeps forgetting), `hub` (the thing in the
   middle, its layers as rings, then everything it connects to), `sources` (a claim wiring down to the
-  evidence behind it), `endcard` (logo in a tile, above the name, then the address). Change their words in
-  `reel.json → scenes`; write a new scene when the story needs a picture of something real that has no
-  footage — an animated diagram of the real thing beats any metaphor.
-- **Page recordings** (`record.mjs`): smooth scrolls of real pages, at phone size for vertical.
-- **Titles and cards** (`titles.mjs`, run by the build): `<br>` breaks a line, `<span class=a>` paints
-  the accent color.
-- **Free push-ins** on any still: `{"still": "stills/x.jpg", "push": 0.06}`.
+  evidence behind it), `endcard` (the mark in a tile, drawing itself, then the name and the address).
+  Change their words in `reel.json → scenes`; write a new scene when the story needs a picture of something
+  real that has no footage — an animated diagram of the real thing beats any metaphor.
+- **Page recordings** (`record.mjs`): smooth scrolls of real pages, at phone size for vertical. Already have
+  a screen recording? Point the shot at it: `{"video": "my-capture.mp4"}` or a folder of frames `{"dir": …}`.
+- **Titles and cards**: real text in the page. `<br>` breaks a line, `<span class=a>` paints the accent,
+  `<span class=apart>` makes a word's letters drift apart, `"size": 0.9` shrinks one long title, and a card's
+  `"at": [0, 1, 2]` brings each line in on its own beat. Kinds: `lower`, `card`, `stat` (a big number that counts
+  up, with a line under it).
+- **Free push-ins** on any still: `{"still": "stills/x.jpg"}`, `"push": 0.06` on the segment.
+
+**How it moves.** A reel reads as crafted when the frame never simply swaps. Give it one motif, the brand's
+most reduced element, and carry it through (The Lab's reel: the red point of its logo, from a chat's send
+button to the logo's own point at the end). Each segment's `"in"` sets how it arrives: `whip` (default: the
+old frame accelerates up into a blur, the new one decelerates out of it), `zoom` (the camera dives through a
+card), `dot` (the frame collapses into its accent point, which flies to center and hits on the beat),
+`flash`, `fade` (into dark footage), `cut` (onto a grid). Every hold gets a slow push, words rise in one at a
+time, and a seeded grain, a vignette and a drifting dot texture finish it. Keep titles on screen about two
+seconds anyway: fast motion is not fast reading.
+
+**Storyboard before you render.** `node build.mjs --storyboard` snapshots a hero frame of every segment and
+title into `qa/storyboard.jpg` in seconds, without rendering. Look at every frame, fix, repeat. It is the
+cheapest place to catch a misplaced shape or a word in the wrong spot.
 
 ## Step 5: paid shots, only where nothing real exists
 
@@ -130,9 +150,25 @@ without `--yes`. Get the human's yes, with the number, before every `--yes`.
 ## Step 6: cut, check, send
 
 ```bash
-python3 build.py                     # renders anything missing, builds out/<name>-v<N>.mp4 + cover
-python3 qa.py out/<name>-v1.mp4      # contact sheet, first frame, blacks per segment, audio continuity
+node build.mjs                       # prepares footage and music, checks, renders out/<name>-v<N>.mp4 + cover
+python3 qa.py out/<name>-v1.mp4      # contact sheet, first frame, phone safe zone, a strip per transition,
+                                     # blacks per segment, audio continuity
 ```
+
+**Vertical reels: keep every word in the phone safe zone.** Stay at 1080×1920, but a modern phone is
+taller than 9:16, so full-screen players (LinkedIn's, measured) fill the height and crop about 9% off each
+side. The like/comment/share rail covers the right fifth below 62% height, the name, caption and scrubber
+cover the bottom 16%, and the status bar the top 10%. So words live in x 11–89%, y 10–84%, and below 62%
+height they stop at x 80%. The kit handles most of it: `build.mjs` warns on any title or card outside the zone,
+drawn scenes and the grid stay inside it, and page recordings shrink to 78% on the ground color so their
+text clears the side crop (`shot_inset` in `reel.json` for all of them, or `"inset"` on one shot's entry;
+`1` turns it off). The bottom of a page recording still sits under the caption, so `qa.py` writes
+`qa/<name>-safe.jpg` with the hidden areas in red: look at it. Nothing you need to read may touch red.
+
+**Look at `qa/<name>-cuts.jpg` before anyone else sees the cut.** It is one ten-frame strip per transition:
+ghosted titles, a line arriving early, an empty frame or a flash of black show up there and nowhere else, because
+a one-per-second sheet steps right over them. Fix, render again (about a minute), look again. The reel in the
+README went through that loop twice before a human saw it.
 
 Open the sheet and the first frame yourself. Then send the human the file, one line per change, the spend
 so far, and one reminder: **show it to the cold viewer and ask "what's this for?"** Their answer is the
@@ -151,6 +187,9 @@ free (words, timing, drawn scenes). Say the cost of any note that isn't, before 
 | A line that dates itself ("155 days") or says nothing ("The models.") | Cut it. Let the picture carry it |
 | A title on screen for under two seconds, or a number written as a sentence | About two seconds for a short title, more for a long one; a number as one big figure. Two viewers called a 44-second cut with sub-second titles "too fast to follow"; the fix ran 58 seconds |
 | A grid with a hole in it | Fill every tile, and let the last one land with time to hold |
+| Words at the edges of a vertical reel | Keep them in the phone safe zone; check `qa/<name>-safe.jpg` |
+| Hard cuts everywhere, a frame that sits still | Transitions that transform the frame; a slow push on every hold |
+| "Done" from a one-per-second contact sheet | Look at every transition strip in `qa/<name>-cuts.jpg` |
 | Blacks that don't match between shots | Draw on the site's own ground color; the build puts every segment on one brightness scale; `qa.py` measures it |
 | Long labels on a ring or a shape | Short labels sitting on their own ring; the long version goes in the title. A label wider than its ring makes a circle read tall |
 | A small logo beside the name (reads as a letter) | Logo in its own app-icon tile, above the name; the name arrives after it |
@@ -174,5 +213,9 @@ what you checked by eye, and the cold-viewer reminder. For a second shape, copy 
 Credits: the interview method (one question at a time, a recommended answer each, every answer written
 to disk before the next) is adapted from Nate Herk's `grill-me` skill; the preflight check and the
 interview-first rule follow his `scroll-craft` skill; checking every generated clip frame by frame before
-the human sees it and keeping a running cost log come from his Higgsfield walkthrough. The rest was learned
-the hard way over twelve versions of one reel.
+the human sees it and keeping a running cost log come from his Higgsfield walkthrough. The motion grammar (one
+motif carried through, transitions that transform the frame, a camera that never sits still) and the render-
+then-inspect-every-transition loop come from his HyperFrames video and `hyperframes-student-kit`; storyboarding
+hero frames before the full render comes from Jay E's (RoboNuggets) video on directing video with Opus 5.5.
+Rendering is [HyperFrames](https://github.com/heygen-com/hyperframes) by HeyGen (Apache-2.0) with GSAP. The rest
+was learned the hard way over seventeen versions of one reel.

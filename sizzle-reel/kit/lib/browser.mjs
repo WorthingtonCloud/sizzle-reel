@@ -50,14 +50,6 @@ export function loadReel(file = "reel.json") {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
-// The font CSS (made by fonts.mjs) is injected as text, never @import-ed: a remote @import inside a
-// file:// page can hang the page's load event forever.
-export function fontCss(reel) {
-  const f = reel.font?.css;
-  if (f && fs.existsSync(f)) return fs.readFileSync(f, "utf8");
-  return "";
-}
-
 export function isLandscape(reel) {
   const [w, h] = reel.size;
   return w > h;

@@ -1,8 +1,11 @@
 {
   "name": "sizzle-reel-kit",
   "private": true,
-  "description": "Build kit for the sizzle-reel skill: titles, code-drawn scenes and page recordings need a headless Chrome.",
+  "description": "Build kit for the sizzle-reel skill: HyperFrames renders the reel; puppeteer records real pages.",
+  "engines": { "node": ">=22" },
   "dependencies": {
+    "gsap": "3.15.0",
+    "hyperframes": "0.8.91",
     "puppeteer": "^24.0.0"
   }
 }

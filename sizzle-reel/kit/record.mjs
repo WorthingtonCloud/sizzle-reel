@@ -54,6 +54,7 @@ for (const name of names) {
     await sleep(30);
     await page.screenshot({ path: `${dir}/f${String(i).padStart(4, "0")}.jpg`, type: "jpeg", quality: 92 });
   }
+  fs.writeFileSync(`${dir}/shot.json`, JSON.stringify({ ...s, size: reel.size }));  // build.py re-records when this changes
   console.log(`${name}: ${n} frames → ${dir}/ (anchor y=${Math.round(base)})`);
 }
 await b.close();

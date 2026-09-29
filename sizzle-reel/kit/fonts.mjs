@@ -1,5 +1,6 @@
-// Download a Google Font to ./fonts and write fonts/font.css pointing at the local files.
+// Download a Google Font to ./fonts and write fonts/<Family>.css pointing at the local files.
 // Usage: node fonts.mjs "Archivo" 500,600,700,800
+// The css names the files relatively; build.mjs copies them next to the composition, so the folder can move.
 // Why local: titles and scenes render from file:// pages, and a remote @import there can hang the load forever.
 import fs from "node:fs";
 import path from "node:path";
@@ -14,9 +15,10 @@ fs.mkdirSync("fonts", { recursive: true });
 const urls = [...new Set([...css.matchAll(/url\((https:[^)]+)\)/g)].map((m) => m[1]))];
 let i = 0;
 for (const u of urls) {
-  const file = path.resolve("fonts", `${family.replace(/\W+/g, "")}-${i++}.woff2`);
-  fs.writeFileSync(file, Buffer.from(await (await fetch(u)).arrayBuffer()));
-  css = css.replaceAll(u, "file://" + file);
+  const name = `${family.replace(/\W+/g, "")}-${i++}.woff2`;
+  fs.writeFileSync(path.join("fonts", name), Buffer.from(await (await fetch(u)).arrayBuffer()));
+  css = css.replaceAll(u, name);
 }
-fs.writeFileSync("fonts/font.css", css);
-console.log(`fonts/font.css: ${family} (${weights}), ${urls.length} files`);
+const out = `fonts/${family.replace(/\W+/g, "")}.css`;
+fs.writeFileSync(out, css);
+console.log(`${out}: ${family} (${weights}), ${urls.length} files → reel.json: "font": {"family": "${family}", "css": "${out}"}  (or "mono" for the label face)`);
