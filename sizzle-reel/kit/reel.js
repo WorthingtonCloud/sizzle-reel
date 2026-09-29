@@ -15,6 +15,7 @@
   const div = (cls, parent, html = "", style = "") => { const d = document.createElement("div"); d.className = cls; if (html) d.innerHTML = html; if (style) d.style.cssText = style; parent.appendChild(d); return d; };
   const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
   const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+  const easeInOut = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
   function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   const tl = gsap.timeline({ paused: true });
@@ -23,7 +24,7 @@
 
   // ───────── the phone safe zone (vertical): words stay in x 11–89%, y 10–84%, and x ≤ 80% below 62% height ─────────
   const fitStage = (center) => {
-    if (!LAND) { const s = Math.min(W / 1080, 0.64 * H / 1200); return { s, x: W / 2 - 540 * s, y: H * 0.35 - 700 * s }; }
+    if (!LAND) { const s = Math.min(W / 1080, 0.64 * H / 1200); return { s, x: W / 2 - 540 * s, y: (center ? H / 2 : H * 0.35) - 700 * s }; }
     const s = center ? 0.92 * H / 1200 : Math.min(0.52 * W / 1080, 0.92 * H / 1200);
     return { s, x: (center ? W / 2 : W * 0.72) - 540 * s, y: H / 2 - 700 * s };
   };
@@ -94,6 +95,25 @@
         tl.to(ring, { attr: { "stroke-dashoffset": 0 }, duration: 0.6, ease: "power2.inOut" }, t0);
         tl.fromTo(ring, { attr: { stroke: P.accent } }, { attr: { stroke: P.line }, duration: 0.9, ease: "power1.in", ...IR }, t0 + 0.3);
         tl.fromTo(lab, { opacity: 0 }, { opacity: 1, duration: 0.3, ...IR }, t0 + 0.35);
+      });
+      // live traffic: once a tool is wired in, red streaks run from it through all three rings into the agent and
+      // back out, ping-pong, forever. Drawn over the rings and under the core, so they vanish into it.
+      const tr = svg("g", {}, g), R0 = 76, R1 = NR - 34, TAIL = 120, CYC = 1.5;
+      nodes.forEach((_, i) => {
+        const ang = (-67.5 + i * 360 / Math.max(nodes.length, 1)) * Math.PI / 180, ux = Math.cos(ang), uy = Math.sin(ang);
+        const start = at(toolsAt + i * tstep) + 0.3;
+        [0, 0.5].forEach((off) => {  // two per spoke, half a cycle apart: one heading in while the other heads out
+          const tail = svg("line", { stroke: P.accent, "stroke-width": 5, "stroke-linecap": "round", opacity: 0 }, tr);
+          const head = svg("circle", { r: 8, fill: P.accent, opacity: 0 }, tr);
+          ticks.push((t) => {
+            if (t < start || t < seg.t0 || t > seg.t1 + 0.1) { tail.setAttribute("opacity", 0); head.setAttribute("opacity", 0); return; }
+            const ph = ((t - start) / CYC + off) % 1, inbound = ph < 0.5, q = easeInOut(inbound ? 1 - 2 * ph : 2 * ph - 1);
+            const fade = clamp((t - start) / 0.25), rh = R0 + q * (R1 - R0), rt = clamp(rh + (inbound ? TAIL : -TAIL), R0, R1);
+            head.setAttribute("cx", C.x + rh * ux); head.setAttribute("cy", C.y + rh * uy); head.setAttribute("opacity", fade);
+            tail.setAttribute("x1", C.x + rh * ux); tail.setAttribute("y1", C.y + rh * uy);
+            tail.setAttribute("x2", C.x + rt * ux); tail.setAttribute("y2", C.y + rt * uy); tail.setAttribute("opacity", 0.8 * fade);
+          });
+        });
       });
       const core = svg("g", {}, svg("g", { transform: `translate(${C.x} ${C.y})` }, g));
       svg("circle", { r: 70, fill: P.card, stroke: P.accent, "stroke-width": 5 }, core);

@@ -203,10 +203,10 @@ html,body{width:${W}px;height:${H}px;overflow:hidden;background:${P.ground}}
 .src .k{position:absolute;left:22px;top:18px;font-size:18px;letter-spacing:.18em;color:${P.dim}}
 .src svg{position:absolute;left:50%;top:58px;margin-left:-32px}.src .t{position:absolute;left:22px;bottom:18px;font-size:30px;font-weight:700}
 .tile{position:absolute;border-radius:16px;overflow:hidden;border:2px solid ${P.line};opacity:0}.tile img{width:100%;height:100%;object-fit:cover;display:block}
-.tileicon{position:absolute;left:420px;top:690px;width:240px;height:240px;background:${P.card};border:3px solid ${P.line};border-radius:56px;overflow:hidden}
+.tileicon{position:absolute;left:420px;top:455px;width:240px;height:240px;background:${P.card};border:3px solid ${P.line};border-radius:56px;overflow:hidden}
 .tileicon .logo{position:absolute;inset:36px}.tileicon .logo img{width:100%;height:100%;object-fit:contain}
-.word{position:absolute;left:0;right:0;top:990px;text-align:center;font-weight:800;font-size:112px;letter-spacing:.01em;opacity:0}
-.url{position:absolute;left:0;right:0;top:1130px;text-align:center;font-weight:500;font-size:40px;color:${P.dim};opacity:0}
+.word{position:absolute;left:0;right:0;top:755px;text-align:center;font-weight:800;font-size:112px;letter-spacing:.01em;opacity:0}
+.url{position:absolute;left:0;right:0;top:895px;text-align:center;font-weight:500;font-size:40px;color:${P.dim};opacity:0}
 #dot,#ring{position:absolute;left:0;top:0;width:56px;height:56px;border-radius:50%;opacity:0}#dot{background:${P.accent}}#ring{border:4px solid ${P.accent}}`;
 
 const REEL = { size: R.size, fps: FPS, palette: P, beat: B, end: END, finish: R.finish, titles: R.titles, scenes: R.scenes || {}, media,
