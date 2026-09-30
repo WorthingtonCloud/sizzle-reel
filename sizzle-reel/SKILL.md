@@ -120,15 +120,15 @@ extend call (about 6 cents; it needs the take's audio id, which `gen.py` writes 
 - **The collage** (`collage.mjs`): sixteen different pieces of the thing's own work, as tiles at the reel's shape.
   Real postings (cover, kicker, title) and real visuals (dashboards, charts, diagrams, UI), laid out as a
   checkerboard so no two neighbors are the same kind. Capture them at the reel's shape (phone width for vertical,
-  desktop for widescreen), with sticky bars and bylines hidden. Never frames of the reel itself: a wall of the
+  desktop for widescreen), with sticky bars hidden. Never frames of the reel itself: a wall of the
   reel's own scenes reads as repetition, and the note back was "showcase everything it has to offer".
 
 **How it moves: max the motion on the picture, never on reading time.** A reel reads as crafted when the
 frame never simply swaps. Same story, words, cuts and music; everything else moves. The full vocabulary is in
 `build.mjs`'s header. What every reel gets:
 
-- **One motif carried through**, the brand's most reduced element (The Lab's reel: the red point of its logo,
-  from a chat's send button to the logo's own point at the end).
+- **One motif carried through**, the brand's most reduced element (for example, the colored point in a logo,
+  carried from a chat's send button all the way to the logo itself at the end).
 - **A camera that hits with the drums.** It punches in on the big hits (onset strength per beat; the band under
   150 Hz marks the kicks, `"punches"` adds more). The words live outside the camera and never shake. Scenes are 3D:
   the chat tilts, the hub starts as a tilted close-up and swings face-on, the sources board orbits.

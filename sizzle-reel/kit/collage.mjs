@@ -1,20 +1,19 @@
 #!/usr/bin/env node
 // Build the collage wall's tiles from the thing's OWN work: real postings (cover + kicker + title) and real visuals
-// (charts, dashboards, diagrams, UI), sixteen different ones. Never frames of this reel: the Lab reel's wall once
-// repeated its own scenes (three chats, three memory diagrams) and the note back was that it should showcase everything
-// the thing has to offer (Sep 29, 2026). Tiles render at the reel's tile shape (9:16 vertical, 16:9 widescreen), in the
-// reel's fonts and palette; then the grid segment lists them.
+// (charts, dashboards, diagrams, UI), sixteen different ones. Never frames of this reel: a wall that repeats the
+// reel's own scenes reads as repetition, when it should showcase everything the thing has to offer. Tiles render at
+// the reel's tile shape (9:16 vertical, 16:9 widescreen), in the reel's fonts and palette; then the grid segment lists them.
 //
 //   reel.json → "collage": {"out": "stills/collage", "tiles": [
-//     {"cover": "src/covers/a.webp", "kicker": "FIELD REPORT NO. 001", "title": "What AI customer decisions should stand on"},
-//     {"image": "src/vis/chart.jpg", "kicker": "INSTRUMENT · MODELS"},              a visual: empty margins trimmed, fitted
-//     {"image": "src/vis/ui.webp", "kicker": "BUILD LOG NO. 005", "fill": true}]}    a visual that fills the whole tile
+//     {"cover": "src/covers/a.webp", "kicker": "POST NO. 1", "title": "The title of that post"},
+//     {"image": "src/vis/chart.jpg", "kicker": "DASHBOARD"},                         a visual: empty margins trimmed, fitted
+//     {"image": "src/vis/ui.webp", "kicker": "THE APP", "fill": true}]}              a visual that fills the whole tile
 //   node collage.mjs    writes <out>/t01.jpg… and prints the "grid" list for the collage segment
 //
 // Lay the tiles out as a checkerboard (posting, visual, posting…) so no two neighbors are the same kind, and give every
 // tile a different source. Capture sources at the reel's shape: phone width (390 @3x) for vertical, desktop (1280 @2x)
-// for widescreen; hide fixed/sticky bars and "swipe to expand" hints; never a byline; never a page that says the
-// closing line (the Lab's homepage headline IS its reel's last line). Record every capture script next to the reel.
+// for widescreen; hide fixed/sticky bars and "swipe to expand" hints; leave out anything listed in reel.json → "never".
+// Record every capture script next to the reel.
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";

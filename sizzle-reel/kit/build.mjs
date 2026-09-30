@@ -11,7 +11,7 @@
 //   {"name": "s02_hub", "beats": 12, "in": "whip", "source": {"scene": "hub"}, "titles": [["t_layers", 0, 6], ["t_plugged", 6, "end"]]}
 // Length: "beats": n (on the grid) · "secs": x · "to_hit": true (runs until the music's first big hit).
 // Title times use the segment's own unit ("end" = the segment's end).
-// "in" (how this segment arrives; the Lab reel v21 uses every one):
+// "in" (how this segment arrives):
 //   whip (default, up into a blur) · whipx (sideways) · zoom (dolly through the outgoing card) · dot (collapses into
 //   its accent point, which flies to center and hits) · flash · fade (into footage) · cut
 //   rise (a page swings up like a raised phone) · swing (carousel: both pages travel, curving away) · depth (old page
@@ -95,8 +95,8 @@ for (const [id, tt] of Object.entries(R.titles || {})) {
   if (em.word ? !plain(tt.text).includes(em.word) : !/class=["']?a[\s"'>]/.test(tt.text || ""))
     console.log(`  ⚠️  ${id}: its emphasis has nothing to land on (${em.word ? `"${em.word}" isn't a word of the title; punctuation counts` : "no accent word and no \"word\""}), so it won't show`);
 }
-// Pages that must never be on screen (reel.json → "never": [urls]): the page that says the closing line, say.
-// The Lab's homepage headline IS its reel's last line; showing it mid-reel spent the ending (v12, v21).
+// Pages that must never be on screen (reel.json → "never": [urls]): whatever the human rules out, and any page whose
+// headline IS the closing line (showing it mid-reel spends the ending before the close).
 const norm = (u) => String(u || "").replace(/[#?].*$/, "").replace(/\/+$/, "").toLowerCase();
 const NEVER = (R.never || []).map(norm);
 SEGS.forEach((s) => { const u = s.source.shot && R.shots?.[s.source.shot]?.url; if (u && NEVER.includes(norm(u))) die(`${s.name}: shot "${s.source.shot}" records ${u}, which reel.json → "never" rules out`); });

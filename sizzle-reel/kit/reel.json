@@ -298,44 +298,44 @@
     "tiles": [
       {
         "cover": "src/covers/post-1.webp",
-        "kicker": "BUILD LOG NO. 001",
+        "kicker": "POST NO. 1",
         "title": "The first thing you shipped"
       },
       {
         "image": "src/vis/dashboard.jpg",
-        "kicker": "INSTRUMENT \u00b7 USAGE"
+        "kicker": "DASHBOARD"
       },
       {
         "cover": "src/covers/post-2.webp",
-        "kicker": "FIELD REPORT NO. 001",
+        "kicker": "POST NO. 2",
         "title": "The first thing you measured"
       },
       {
         "image": "src/vis/chart.jpg",
-        "kicker": "FIELD REPORT NO. 002"
+        "kicker": "CHART"
       },
       {
         "cover": "src/covers/post-3.webp",
-        "kicker": "NOTE NO. 001",
+        "kicker": "POST NO. 3",
         "title": "An argument you made"
       },
       {
         "image": "src/vis/diagram.jpg",
-        "kicker": "BUILD LOG NO. 002"
+        "kicker": "DIAGRAM"
       },
       {
         "cover": "src/covers/post-4.webp",
-        "kicker": "BUILD LOG NO. 003",
+        "kicker": "POST NO. 4",
         "title": "Another build"
       },
       {
         "image": "src/vis/ui.webp",
-        "kicker": "BUILD LOG NO. 004",
+        "kicker": "THE APP",
         "fill": true
       },
       {
         "cover": "src/covers/post-5.webp",
-        "kicker": "FIELD REPORT NO. 003",
+        "kicker": "POST NO. 5",
         "title": "Another finding"
       }
     ]
