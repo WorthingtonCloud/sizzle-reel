@@ -104,6 +104,26 @@ if cuts:
         flag = "  (footage)" if footage else "  ⚠️ lighter or darker than the rest" if typical is not None and 0 <= y < 40 and abs(y - typical) > 4 else ""
         print(f"    {name:28s} {y:6.1f}{flag}")
 
+# Black holes: a page on screen before (or after) its slot paints as a solid black rectangle unless its video plays
+# early, and the 3D hand-offs put pages there (v19's first draft). Near every cut, measure how much of the middle of
+# the frame is darker than the ground can be; the reel's ground is never pure black, so a big patch of it is a hole.
+if cuts:
+    lo = 2 if v.get("color_range") == "pc" else 18  # pure black, with a little room for grain
+    holes = []
+    for a, b in zip(cuts, cuts[1:]):
+        if "clip" in (a.get("kind"), b.get("kind")):
+            continue  # real footage has real blacks
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-ss", f"{max(0, b['t0'] - 0.6):.2f}", "-t", "1.2", "-i", src, "-vf",
+                            f"crop=iw*0.8:ih*0.8,lutyuv=y='if(lte(val,{lo}),255,0)',signalstats,metadata=print:key=lavfi.signalstats.YAVG",
+                            "-f", "null", "-"], capture_output=True, text=True)
+        worst = max((float(x) for x in re.findall(r"YAVG=([\d.]+)", r.stderr)), default=0) / 255
+        if worst > 0.06:
+            holes.append((b["name"], worst))
+    for name, f in holes:
+        print(f"  ⚠️  black hole  {f:.0%} of the frame is pure black near the cut into {name} — a page or clip outside its slot? look at that row of the cuts strip")
+    if not holes:
+        print("  holes   none: no pure-black patches near any cut")
+
 # Audio: one continuous track. A dip or a gap reads as "the audio dropped out".
 r = subprocess.run(["ffmpeg", "-hide_banner", "-i", src, "-vn", "-af", "ebur128=metadata=1,ametadata=print:key=lavfi.r128.M",
                     "-f", "null", "-"], capture_output=True, text=True)

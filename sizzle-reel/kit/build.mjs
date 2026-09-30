@@ -11,17 +11,43 @@
 //   {"name": "s02_hub", "beats": 12, "in": "whip", "source": {"scene": "hub"}, "titles": [["t_layers", 0, 6], ["t_plugged", 6, "end"]]}
 // Length: "beats": n (on the grid) · "secs": x · "to_hit": true (runs until the music's first big hit).
 // Title times use the segment's own unit ("end" = the segment's end).
-// "in" (how this segment arrives): whip (default) · zoom · dot · flash · fade · cut.
+// "in" (how this segment arrives; the Lab reel v21 uses every one):
+//   whip (default, up into a blur) · whipx (sideways) · zoom (dolly through the outgoing card) · dot (collapses into
+//   its accent point, which flies to center and hits) · flash · fade (into footage) · cut
+//   rise (a page swings up like a raised phone) · swing (carousel: both pages travel, curving away) · depth (old page
+//   flies past the camera, new one rushes in from far) · flip (turned over like a card) · drop (falls in from above)
+//   over (a card lands ON the previous segment, which dims under the first line and, if it's a grid, collapses into
+//   the red point on the second line's beat)
+// Segment extras: "fx": {"dust": {"x": [0.3, 0.78], "y": [0.24, 0.62], "n": 34}} motes hanging in the light of a clip.
+// Top level: "punches": [42.99] extra camera push-ins on drum hits (transitions and emphasis add their own).
+//   "never": ["https://site/"] pages that must never be on screen (the one that says the closing line): a shot that
+//   records one stops the build, and collage.mjs refuses a tile whose "from" is one.
+// Checks it runs before rendering (each one a note a reviewer once had to give): words in the phone safe zone, emphasis
+// that has no word to land on, a check mark on its word, a marker split by a line break, a font that never loaded,
+// grid tiles that are frames of this reel or the same picture twice, a "never" page. qa.py adds black holes near cuts.
 // Sources:
 //   {"scene": "chat" | "hub" | "sources" | "endcard"}   drawn in code (reel.js), words from reel.json → "scenes"
-//   {"shot": "home", "inset": 0.78}                      a real page in a framed panel (reel.json → "shots": a url that
-//                                                        record.mjs scrolls, or a "video" / "dir" of frames you recorded)
+//   {"shot": "home", "inset": 0.78}                      a real page in a framed panel that floats in 3D with a glare that
+//                                                        follows its tilt (reel.json → "shots": a url that record.mjs
+//                                                        scrolls, or a "video" / "dir" of frames you recorded)
 //   {"clip": "clips/x.mp4", "ss": 0, "speed": 1}         a video clip (generated, or your own footage)
 //   {"still": "stills/x.jpg"}                            a still with a slow push-in ("push" on the segment sets how far)
-//   {"card": "t_title", "at": [0, 1, 2]}                 a full-frame title card; "at" = beat each line arrives on
-//   {"grid": ["@5.2", "stills/a.jpg", "clips/b.mp4@1.5"]} tiles popping on, a third of a beat apart;
-//                                                        "@t" = a frame of THIS reel at t seconds
+//   {"card": "t_title", "at": [0, 1, 2], "style": "flap" | "slam", "out": "shatter"}
+//                                                        a full-frame title card; "at" = beat each line arrives on; flap =
+//                                                        departures-board flip, slam = lands from over the camera with a
+//                                                        punch; shatter = every letter flies apart at the cut
+//   {"grid": ["stills/collage/t01.jpg", …], "cols": 4}
+//                                                        the collage: tiles fly in from every side and land as a 3D wall
+//                                                        the camera sweeps over, then a red playhead runs them in order.
+//                                                        Build the tiles with collage.mjs from the thing's OWN work (real
+//                                                        postings + real visuals, all different); fill every row. ("@t" =
+//                                                        a frame of this reel still works, but a wall of the reel's own
+//                                                        scenes reads as repetition — review note, Sep 29.)
+// Titles (reel.json → "titles"): "spark": true on a stat fires it out of the scene's anchor; "em" = one emphasis on the
+// key word, on the beat ("b" beats after the title's slot): {"fx": "pulse" | "box" | "check" | "beats" | "ruler",
+// "word": "checked" (default: the accent words), "b": 1, "snap": 3 (ruler: the beat its marker lands)}.
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
@@ -54,12 +80,26 @@ const SEGS = R.segments.map((seg, i) => {
   const unit = seg.to_hit || seg.secs != null ? 1 : B;
   const len = seg.to_hit ? HIT - t : seg.secs != null ? +seg.secs : +seg.beats * B;
   if (!(len > 0)) die(`${seg.name}: length ${len}s (a to_hit segment must come before the hit)`);
-  const s = { name: seg.name, t0: r3(t), t1: r3(t + len), in: i ? seg.in || "whip" : "cut", source: seg.source, push: seg.push, scrim: seg.scrim,
+  const s = { name: seg.name, t0: r3(t), t1: r3(t + len), in: i ? seg.in || "whip" : "cut", source: seg.source, push: seg.push, scrim: seg.scrim, fx: seg.fx,
     titles: (seg.titles || []).map(([id, a, b]) => ({ id, t0: r3(t + a * unit), t1: r3(b === "end" ? t + len : t + b * unit) })) };
   t += len;
   return s;
 });
 const END = r3(t);
+
+// ───────── checks for mistakes that each cost a round of notes ─────────
+// An emphasis whose word isn't in its title shows nothing, silently ("word" must match with its punctuation).
+const plain = (html) => String(html || "").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean);
+for (const [id, tt] of Object.entries(R.titles || {})) {
+  const em = typeof tt.em === "string" ? { fx: tt.em } : tt.em; if (!em) continue;
+  if (em.word ? !plain(tt.text).includes(em.word) : !/class=["']?a[\s"'>]/.test(tt.text || ""))
+    console.log(`  ⚠️  ${id}: its emphasis has nothing to land on (${em.word ? `"${em.word}" isn't a word of the title; punctuation counts` : "no accent word and no \"word\""}), so it won't show`);
+}
+// Pages that must never be on screen (reel.json → "never": [urls]): the page that says the closing line, say.
+// The Lab's homepage headline IS its reel's last line; showing it mid-reel spent the ending (v12, v21).
+const norm = (u) => String(u || "").replace(/[#?].*$/, "").replace(/\/+$/, "").toLowerCase();
+const NEVER = (R.never || []).map(norm);
+SEGS.forEach((s) => { const u = s.source.shot && R.shots?.[s.source.shot]?.url; if (u && NEVER.includes(norm(u))) die(`${s.name}: shot "${s.source.shot}" records ${u}, which reel.json → "never" rules out`); });
 
 // ───────── the music: one track, trimmed to the cut, faded only at the very end ─────────
 const offset = +(M.offset || 0), fade = +(M.fade ?? 2.2), mlen = probe(M.file);
@@ -73,9 +113,11 @@ if (!fresh(`${A}/bed.wav`, bedKey)) {
 // ───────── footage: page recordings, clips and stills become media files sized to their slot ─────────
 const frames = (d) => fs.existsSync(d) ? fs.readdirSync(d).filter((f) => /^f\d+\.jpg$/.test(f)).sort() : [];
 const media = { tiles: {}, logo: null };
+const LEAD_MAX = 0.4, TAIL = 0.45;
 const segHTML = SEGS.map((seg, i) => {
-  const src = seg.source, len = seg.t1 - seg.t0, v = (file) =>
-    `<video id="v${i}" src="${file}" muted playsinline data-start="${seg.t0}" data-duration="${r3(len)}" data-track-index="${i + 1}"></video>`;
+  const src = seg.source, len = seg.t1 - seg.t0, LEAD = r3(Math.min(LEAD_MAX, seg.t0)), v = (file) =>
+    `<video id="v${i}" src="${file}" muted playsinline data-start="${r3(seg.t0 - LEAD)}" data-duration="${r3(LEAD + len + TAIL)}" data-track-index="${i + 1}"></video>`;
+  const lead = `tpad=start_mode=clone:start_duration=${LEAD}`;
   let inner = "", footage = false;
   if (src.shot) {
     const shot = (R.shots || {})[src.shot]; if (!shot) die(`${seg.name}: no shot "${src.shot}" in reel.json → shots`);
@@ -83,10 +125,10 @@ const segHTML = SEGS.map((seg, i) => {
     // and re-records when the shot's entry (url, range, frames…) or the reel's size changed
     const dir = shot.dir || `rec/${src.shot}`, out = `${A}/shot-${src.shot}-${i}.mp4`, scale = `scale=${LAND ? 1920 : 1080}:-2:flags=lanczos`;
     if (shot.video) {
-      const key = `${shot.video}|${mtime(shot.video)}|${shot.ss || 0}|${len}`;
+      const key = `${shot.video}|${mtime(shot.video)}|${shot.ss || 0}|${len}|${LEAD}`;
       if (!fresh(out, key)) {
-        ff("-ss", String(shot.ss || 0), "-i", shot.video, "-vf", `fps=${FPS},${scale},tpad=stop_mode=clone:stop_duration=30,format=yuv420p`,
-          "-an", "-c:v", "libx264", "-crf", "16", "-t", String(len + 0.5), out);
+        ff("-ss", String(shot.ss || 0), "-i", shot.video, "-vf", `fps=${FPS},${scale},${lead},tpad=stop_mode=clone:stop_duration=30,format=yuv420p`,
+          "-an", "-c:v", "libx264", "-crf", "16", "-t", String(LEAD + len + TAIL + 0.1), out);
         stamp(out, key);
       }
     } else {
@@ -95,11 +137,11 @@ const segHTML = SEGS.map((seg, i) => {
         const have = fs.existsSync(`${dir}/shot.json`) ? JSON.stringify(JSON.parse(fs.readFileSync(`${dir}/shot.json`, "utf8"))) : null;
         if (!frames(dir).length || have !== want) run("node", ["record.mjs", src.shot]);
       }
-      const n = frames(dir).length, key = `${dir}|${n}|${len}|${mtime(`${dir}/${frames(dir)[0]}`)}|${mtime(`${dir}/shot.json`)}`;
+      const n = frames(dir).length, key = `${dir}|${n}|${len}|${mtime(`${dir}/${frames(dir)[0]}`)}|${mtime(`${dir}/shot.json`)}|${LEAD}`;
       if (!n) die(`${seg.name}: no frames in ${dir}`);
       if (!fresh(out, key)) {  // stretch or squeeze the recorded frames to fill the slot exactly
         ff("-framerate", (n / len).toFixed(5), "-start_number", "0", "-i", `${dir}/f%04d.jpg`, "-vf",
-          `fps=${FPS},${scale},tpad=stop_mode=clone:stop_duration=0.5,format=yuv420p`, "-c:v", "libx264", "-crf", "16", "-t", String(len + 0.5), out);
+          `fps=${FPS},${scale},${lead},tpad=stop_mode=clone:stop_duration=${TAIL + 0.2},format=yuv420p`, "-c:v", "libx264", "-crf", "16", "-t", String(LEAD + len + TAIL + 0.1), out);
         stamp(out, key);
       }
     }
@@ -113,10 +155,10 @@ const segHTML = SEGS.map((seg, i) => {
     inner = `<div class="panel" style="left:${r3(box.x)}px;top:${r3((H - box.h) / 2)}px;width:${r3(box.w)}px;height:${r3(box.h)}px;border-radius:${radius}px">${v(path.relative(COMP, out))}</div>`;
     footage = true;
   } else if (src.clip) {
-    const out = `${A}/clip-${i}.mp4`, sp = src.speed || 1, key = `${src.clip}|${mtime(src.clip)}|${src.ss || 0}|${sp}|${len}`;
+    const out = `${A}/clip-${i}.mp4`, sp = src.speed || 1, key = `${src.clip}|${mtime(src.clip)}|${src.ss || 0}|${sp}|${len}|${LEAD}`;
     if (!fresh(out, key)) {
-      ff("-ss", String(src.ss || 0), "-i", src.clip, "-vf", `setpts=(PTS-STARTPTS)/${sp},fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase:flags=lanczos,crop=${W}:${H},setsar=1,tpad=stop_mode=clone:stop_duration=30,format=yuv420p`,
-        "-an", "-c:v", "libx264", "-crf", "16", "-t", String(len + 0.5), out);
+      ff("-ss", String(src.ss || 0), "-i", src.clip, "-vf", `setpts=(PTS-STARTPTS)/${sp},fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase:flags=lanczos,crop=${W}:${H},setsar=1,${lead},tpad=stop_mode=clone:stop_duration=30,format=yuv420p`,
+        "-an", "-c:v", "libx264", "-crf", "16", "-t", String(LEAD + len + TAIL + 0.1), out);
       stamp(out, key);
     }
     inner = `<div class="full">${v(path.relative(COMP, out))}</div>`; footage = true;
@@ -126,14 +168,23 @@ const segHTML = SEGS.map((seg, i) => {
   }
   const words = seg.titles.some((tt) => ["lower", "stat", undefined].includes(R.titles[tt.id]?.kind));
   const scrim = footage && words && seg.scrim !== false ? `<div class="scrim"></div>` : "";
-  return `<div class="seg" id="seg-${i}"><div class="cam">${inner}</div>${scrim}</div>`;
+  return `<div class="seg" id="seg-${i}"><div class="mover"><div class="cam">${inner}</div></div>${scrim}</div>`;
 });
 
 // grid tiles: files, frames of clips ("clip.mp4@1.5"), or frames of this very reel ("@5.2", snapshotted below)
 const snapTimes = [];
 SEGS.forEach((seg, i) => {
   if (!seg.source.grid) return;
-  if (seg.source.grid.length % 3) console.log(`  ⚠️  ${seg.name}: ${seg.source.grid.length} tiles leaves a gap in a 3-wide grid — an unfilled grid reads as a mistake`);
+  const cols = seg.source.cols || 3; if (seg.source.grid.length % cols) console.log(`  ⚠️  ${seg.name}: ${seg.source.grid.length} tiles leaves a gap in a ${cols}-wide grid — an unfilled grid reads as a mistake`);
+  // the wall showcases the thing's own work: a frame of this reel, or the same picture twice, reads as repetition (v21)
+  const own = seg.source.grid.filter((g) => g.startsWith("@")).length;
+  if (own) console.log(`  ⚠️  ${seg.name}: ${own} of ${seg.source.grid.length} tiles are frames of this reel — build the wall from the thing's own work (collage.mjs)`);
+  const seen = new Map();
+  seg.source.grid.forEach((g) => {
+    const [file, at] = g.split("@"); if (!file || !fs.existsSync(file)) return;
+    const h = crypto.createHash("sha1").update(fs.readFileSync(file)).update(at || "").digest("hex");
+    if (seen.has(h)) console.log(`  ⚠️  ${seg.name}: ${g} is the same picture as ${seen.get(h)} — every tile a different source`); else seen.set(h, g);
+  });
   media.tiles[i] = seg.source.grid.map((g, k) => {
     const out = `${A}/tiles/g${i}-${k}.jpg`, [file, at] = g.split("@");
     if (!file) snapTimes.push({ at: +at, out });
@@ -173,21 +224,35 @@ html,body{width:${W}px;height:${H}px;overflow:hidden;background:${P.ground}}
 #root{position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${P.ground};font-family:"${SANS}",sans-serif;color:${P.ink}}
 .mono{font-family:"${MONO}",monospace}.sans{font-family:"${SANS}",sans-serif}
 .seg{position:absolute;inset:0;opacity:0}#seg-0{opacity:1}
-.cam{position:absolute;inset:0}.stage{position:absolute;left:0;top:0;width:1080px;height:1400px;transform-origin:0 0}
+#camrig{position:absolute;inset:0}.mover{position:absolute;inset:0}
+.cam{position:absolute;inset:0;perspective:1800px}.stage{position:absolute;left:0;top:0;width:1080px;height:1400px;transform-origin:0 0}
+.rig3d{position:absolute;left:0;top:0;width:1080px;height:1400px;transform-origin:540px 700px}
+#fx{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
 #paper{position:absolute;inset:-120px;${(R.finish?.texture ?? "dots") === "dots" ? `background-image:radial-gradient(${P.card} 1.7px,transparent 2px);background-size:60px 60px` : ""}}
 .vignette{position:absolute;inset:0;pointer-events:none;${R.finish?.vignette === false ? "" : "background:radial-gradient(ellipse 85% 70% at 50% 42%,transparent 55%,rgba(0,0,0,.5) 100%)"}}
 .grain{position:absolute;left:0;top:0;width:${W}px;height:${H}px;opacity:0;mix-blend-mode:overlay}
-.lower,.stat{position:absolute;opacity:0;text-shadow:0 4px 40px rgba(0,0,0,.85),0 2px 10px rgba(0,0,0,.9)}
+.lower,.stat{position:absolute;isolation:isolate;opacity:0;text-shadow:0 4px 40px rgba(0,0,0,.85),0 2px 10px rgba(0,0,0,.9)}
 .lower{${lowerBox};font-weight:800;line-height:1.03;letter-spacing:-.02em}
 .lower .rule{display:block;width:.92em;height:.1em;background:${P.accent};margin-bottom:.38em;transform-origin:left center}
 .stat{${statBox}}.stat .num{font-weight:800;font-size:${LAND ? pct(0.17, H) : pct(0.185, W)}px;line-height:.9;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
 .stat .sub{margin-top:.45em;font-weight:600;font-size:${LAND ? pct(0.042, H) : pct(0.046, W)}px;line-height:1.12;color:${P.ink};opacity:.82}
 .line{display:block;white-space:nowrap}.w{display:inline-block}.ch{display:inline-block}.a{color:${P.accent}}
+.lower .line{position:relative}.em-anchor{position:relative}
+.em-mark{background:linear-gradient(${P.accent},${P.accent}) no-repeat 0 50%/0% 100%;padding:.03em .1em .02em;margin:-.03em -.1em -.02em;border-radius:.08em}
+.em-check{position:absolute;left:calc(100% + .14em);top:.14em;width:.66em;height:.66em;overflow:visible}
+.em-beats{position:absolute;left:0;top:calc(100% + .12em);display:flex;gap:.2em}.em-dot{display:block;width:.22em;height:.22em;border-radius:50%;background:${P.dim};opacity:0}
+.em-ruler{position:absolute;left:0;width:100%;top:calc(100% + .04em);height:.3em}.em-base{position:absolute;left:0;top:0;width:100%;height:4px;background:${P.accent};transform-origin:0 50%;transform:scaleX(0)}
+.em-tick{position:absolute;top:0;width:2px;height:.12em;margin-left:-1px;background:${P.dim};opacity:0}.em-tick.tall{width:3px;height:.24em;background:${P.ink}}
+.em-track{position:absolute;left:0;top:0;width:100%;height:100%}.em-marker{position:absolute;left:0;top:-.2em;width:0;height:0;margin-left:-.11em;border-left:.11em solid transparent;border-right:.11em solid transparent;border-top:.2em solid ${P.accent};opacity:0}
+.em-hit{position:absolute;top:0;width:5px;height:.3em;margin-left:-2px;background:${P.accent};opacity:0}
 .cardwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 ${LAND ? pct(0.06, W) : pct(0.11, W)}px}
 .card{text-align:center;font-weight:800;font-size:${pct(0.118, Math.min(W, H))}px;line-height:1.03;letter-spacing:-.025em}
 .panel{position:absolute;overflow:hidden;border:2px solid ${P.line};box-shadow:0 40px 100px rgba(0,0,0,.65);background:#000}
+.sheen{position:absolute;top:-10%;bottom:-10%;left:0;width:60%;background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.035) 30%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.035) 70%,transparent 100%);pointer-events:none}
 .full{position:absolute;inset:0}.panel video,.full video,.full img{width:100%;height:100%;object-fit:cover;display:block}
 .scrim{position:absolute;inset:0;background:${LAND ? `linear-gradient(to right,${P.ground}f0 0%,${P.ground}d0 38%,${P.ground}00 52%)` : `linear-gradient(to bottom,${P.ground}00 40%,${P.ground}e0 57%,${P.ground}f2 80%,${P.ground}b3 100%)`}}
+.scan{position:absolute;left:0;right:0;height:5px;background:${P.accent};box-shadow:0 0 30px 6px ${P.accent}88;opacity:0}
+.mote{position:absolute;left:0;top:0;border-radius:50%;background:#dfe7ec}.dust{position:absolute;inset:0;pointer-events:none}
 .chat{position:absolute;left:120px;top:250px;width:840px;height:840px;background:${P.card};border:3px solid ${P.line};border-radius:40px;overflow:hidden}
 .chat-h{height:120px;border-bottom:3px solid ${P.line};display:flex;align-items:center;padding:0 48px;font-weight:600;font-size:34px;color:${P.dim}}
 .chat-b{padding:48px;display:flex;flex-direction:column;gap:34px}
@@ -202,15 +267,16 @@ html,body{width:${W}px;height:${H}px;overflow:hidden;background:${P.ground}}
 .src{position:absolute;width:262px;height:200px;background:${P.card};border:3px solid ${P.line};border-radius:20px}
 .src .k{position:absolute;left:22px;top:18px;font-size:18px;letter-spacing:.18em;color:${P.dim}}
 .src svg{position:absolute;left:50%;top:58px;margin-left:-32px}.src .t{position:absolute;left:22px;bottom:18px;font-size:30px;font-weight:700}
-.tile{position:absolute;border-radius:16px;overflow:hidden;border:2px solid ${P.line};opacity:0}.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.wall{position:absolute;transform-style:preserve-3d}
+.tile{position:absolute;border-radius:16px;overflow:hidden;border:3px solid ${P.line};opacity:0;box-shadow:0 30px 60px rgba(0,0,0,.6);backface-visibility:hidden}.tile img{width:100%;height:100%;object-fit:cover;display:block}
 .tileicon{position:absolute;left:420px;top:455px;width:240px;height:240px;background:${P.card};border:3px solid ${P.line};border-radius:56px;overflow:hidden}
 .tileicon .logo{position:absolute;inset:36px}.tileicon .logo img{width:100%;height:100%;object-fit:contain}
-.word{position:absolute;left:0;right:0;top:755px;text-align:center;font-weight:800;font-size:112px;letter-spacing:.01em;opacity:0}
+.word{position:absolute;left:0;right:0;top:755px;text-align:center;font-weight:800;font-size:112px;letter-spacing:.01em;opacity:0;clip-path:inset(-20% -5% -8% -5%)}
 .url{position:absolute;left:0;right:0;top:895px;text-align:center;font-weight:500;font-size:40px;color:${P.dim};opacity:0}
 #dot,#ring{position:absolute;left:0;top:0;width:56px;height:56px;border-radius:50%;opacity:0}#dot{background:${P.accent}}#ring{border:4px solid ${P.accent}}`;
 
-const REEL = { size: R.size, fps: FPS, palette: P, beat: B, end: END, finish: R.finish, titles: R.titles, scenes: R.scenes || {}, media,
-  segments: SEGS.map(({ name, t0, t1, in: inn, source, push, titles }) => ({ name, t0, t1, in: inn, source, push, titles })) };
+const REEL = { size: R.size, fps: FPS, palette: P, beat: B, end: END, finish: R.finish, titles: R.titles, scenes: R.scenes || {}, media, punches: R.punches || [],
+  segments: SEGS.map(({ name, t0, t1, in: inn, source, push, titles, fx }) => ({ name, t0, t1, in: inn, source, push, titles, fx })) };
 fs.writeFileSync(`${COMP}/index.html`, `<!doctype html>
 <!-- Written by build.mjs from reel.json. Edit reel.json (or the kit's reel.js), never this file. -->
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=${W}, height=${H}">
@@ -218,9 +284,9 @@ fs.writeFileSync(`${COMP}/index.html`, `<!doctype html>
 <style>${CSS}</style></head><body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="${END}" data-width="${W}" data-height="${H}">
 <audio id="bed" src="assets/bed.wav" data-start="0" data-duration="${END}" data-track-index="30" data-volume="1"></audio>
-<div id="paper"></div>
+<div id="camrig"><div id="paper"></div>
 ${segHTML.join("\n")}
-<div id="dot"></div><div id="ring"></div><div class="vignette"></div><div id="titles"></div><div id="grain"></div>
+<svg id="fx" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"></svg><div id="dot"></div><div id="ring"></div></div><div class="vignette"></div><div id="titles"></div><div id="grain"></div>
 </div>
 <script>
 window.REEL = ${JSON.stringify(REEL)};
@@ -242,12 +308,22 @@ hf(["lint"]);
   const errs = []; p.on("pageerror", (e) => errs.push(e.message));
   await p.goto(pathToFileURL(path.resolve(COMP, "index.html")).href, { waitUntil: "load" });
   if (errs.length) die(`reel.js failed in the browser: ${errs[0]}`);
+  // Measure with the real fonts. A face that never loads renders in a fallback, silently, and every width is wrong
+  // (v20: widths read before the font arrived left the marker short of "measures" and the check mark on "checked").
+  const fams = [R.font, R.mono].filter((f) => f?.family && f?.css).map((f) => f.family);
+  const noFont = await p.evaluate(async (fams) => {
+    await document.fonts.ready; const out = [];
+    for (const f of fams) { try { if (!(await document.fonts.load(`700 48px "${f}"`)).length) out.push(f); } catch { out.push(f); } }
+    return out;
+  }, fams);
+  noFont.forEach((f) => console.log(`  ⚠️  the font "${f}" never loaded in the composition — the render will use a fallback (node fonts.mjs "${f}")`));
   const found = await p.evaluate((W, H, LAND) => {
     const S = { l: 0.11, r: 0.89, t: 0.10, b: 0.84, railX: 0.80, railY: 0.62 }, out = [], e = 2;  // 2px: words set ON the line are inside
     const check = (name, el) => {
       // measure where each word ENDS UP: clear the entrance tweens' start state (a card line waits at 1.4× scale)
-      el.querySelectorAll(".line,.w,.num,.sub").forEach((e) => { e.style.transform = "none"; e.style.filter = "none"; });
-      const rs = [...el.querySelectorAll(".w,.num,.sub")].map((e) => e.getBoundingClientRect()).filter((r) => r.width);
+      el.querySelectorAll(".line,.w,.ch,.num,.sub,.em-check").forEach((e) => { e.style.transform = "none"; e.style.filter = "none"; });
+      // emphasis marks count as words: a check mark past the last word can run off the safe side
+      const rs = [...el.querySelectorAll(".w,.num,.sub,.em-check,.em-beats,.em-ruler")].map((e) => e.getBoundingClientRect()).filter((r) => r.width);
       if (!rs.length) return;
       const box = { l: Math.min(...rs.map((r) => r.left)), r: Math.max(...rs.map((r) => r.right)), t: Math.min(...rs.map((r) => r.top)), b: Math.max(...rs.map((r) => r.bottom)) };
       const miss = [];
@@ -258,6 +334,9 @@ hf(["lint"]);
         if (box.b > H * S.railY && box.r > W * S.railX + e) miss.push("the button rail");
       }
       if ([...el.querySelectorAll(".line")].some((ln) => ln.scrollWidth > el.clientWidth + 2) && el.classList.contains("lower")) miss.push("its box (too wide)");
+      // a mark drawn beside its word must clear it; a marker behind its word must cover all of it (a reviewer caught both, v20)
+      el.querySelectorAll(".em-check").forEach((c) => { const w = c.parentElement.getBoundingClientRect(), r = c.getBoundingClientRect(); if (r.left < w.right - 1) out.push(`${name}: the check mark overlaps its word — it hangs past the word in em (.em-check)`); });
+      el.querySelectorAll(".em-mark").forEach((w) => { const cs = getComputedStyle(w); if (cs.display === "inline" && w.getClientRects().length > 1) out.push(`${name}: the marked word breaks across two lines, so the marker splits — move the <br>`); });
       if (miss.length) out.push(`${name} runs under ${miss.join(" and ")} — shorten it, add a <br>, or give it "size": 0.9`);
     };
     document.querySelectorAll("[data-title]").forEach((el) => check(el.dataset.title, el));

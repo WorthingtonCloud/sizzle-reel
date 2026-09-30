@@ -60,7 +60,8 @@ question, read it instead of asking. Keep it to about eight questions:
 7. **Budget, and is paid generation OK at all?** A fully free reel is a real option. A typical paid reel is
    $10–15: two or three short cinematic shots plus music.
 8. **Who is the cold viewer?** Someone who has never seen the thing, who will watch the finished cut while
-   the human watches their face. And: anything that must never appear on screen.
+   the human watches their face. And: anything that must never appear on screen (pages go in reel.json →
+   `"never"`, and the build refuses them).
 
 Close with "anything we haven't touched?", then write the brief at the top of the file: purpose, audience,
 the take-away, the closing line, the material list, music direction, budget, the off-limits list.
@@ -116,15 +117,36 @@ extend call (about 6 cents; it needs the take's audio id, which `gen.py` writes 
   `"at": [0, 1, 2]` brings each line in on its own beat. Kinds: `lower`, `card`, `stat` (a big number that counts
   up, with a line under it).
 - **Free push-ins** on any still: `{"still": "stills/x.jpg"}`, `"push": 0.06` on the segment.
+- **The collage** (`collage.mjs`): sixteen different pieces of the thing's own work, as tiles at the reel's shape.
+  Real postings (cover, kicker, title) and real visuals (dashboards, charts, diagrams, UI), laid out as a
+  checkerboard so no two neighbors are the same kind. Capture them at the reel's shape (phone width for vertical,
+  desktop for widescreen), with sticky bars and bylines hidden. Never frames of the reel itself: a wall of the
+  reel's own scenes reads as repetition, and the note back was "showcase everything it has to offer".
 
-**How it moves.** A reel reads as crafted when the frame never simply swaps. Give it one motif, the brand's
-most reduced element, and carry it through (The Lab's reel: the red point of its logo, from a chat's send
-button to the logo's own point at the end). Each segment's `"in"` sets how it arrives: `whip` (default: the
-old frame accelerates up into a blur, the new one decelerates out of it), `zoom` (the camera dives through a
-card), `dot` (the frame collapses into its accent point, which flies to center and hits on the beat),
-`flash`, `fade` (into dark footage), `cut` (onto a grid). Every hold gets a slow push, words rise in one at a
-time, and a seeded grain, a vignette and a drifting dot texture finish it. Keep titles on screen about two
-seconds anyway: fast motion is not fast reading.
+**How it moves: max the motion on the picture, never on reading time.** A reel reads as crafted when the
+frame never simply swaps. Same story, words, cuts and music; everything else moves. The full vocabulary is in
+`build.mjs`'s header. What every reel gets:
+
+- **One motif carried through**, the brand's most reduced element (The Lab's reel: the red point of its logo,
+  from a chat's send button to the logo's own point at the end).
+- **A camera that hits with the drums.** It punches in on the big hits (onset strength per beat; the band under
+  150 Hz marks the kicks, `"punches"` adds more). The words live outside the camera and never shake. Scenes are 3D:
+  the chat tilts, the hub starts as a tilted close-up and swings face-on, the sources board orbits.
+- **Nothing hard-cuts; segments hand off.** Each segment's `"in"`: for pages `rise` (swings up like a raised
+  phone), `swing` (carousel), `depth` (fly-through), `flip`, `drop`; for the rest `whip` / `whipx`, `zoom` (dives
+  through a card), `dot` (collapses into the motif point, which hits on the beat), `flash`, `fade`, `over` (a card
+  lands on the previous segment). Vary them: five pages in a row with five different hand-offs is what makes it pop.
+- **Things arrive from somewhere.** Tools fly in along their spokes, source cards from the sides, collage tiles
+  from every direction; a card's letters can `shatter` at the cut. Never across the words.
+- **The collage is the set piece:** the wall lands in 3D under a sweeping camera, a playhead runs the tiles in
+  order, the next card lands `over` it, and the wall collapses into the motif point.
+- **One emphasis per key word, on the beat, after it lands:** `box` (a marker behind it), `check`, `beats` (dots
+  lighting per beat), `ruler` (a marker snaps on the drop), `pulse`. Plus `spark` on stats.
+- Every hold gets a slow push, words rise in one at a time, and a seeded grain, a vignette, a drifting dot texture
+  and dust in the light finish it.
+
+Keep titles on screen about two seconds anyway: fast motion is not fast reading. Left out on purpose: a HUD (it
+sits where phones hide things), sub-second word flurries, and sound effects.
 
 **Storyboard before you render.** `node build.mjs --storyboard` snapshots a hero frame of every segment and
 title into `qa/storyboard.jpg` in seconds, without rendering. Look at every frame, fix, repeat. It is the
@@ -165,9 +187,17 @@ text clears the side crop (`shot_inset` in `reel.json` for all of them, or `"ins
 `1` turns it off). The bottom of a page recording still sits under the caption, so `qa.py` writes
 `qa/<name>-safe.jpg` with the hidden areas in red: look at it. Nothing you need to read may touch red.
 
+**Every ⚠️ the build or `qa.py` prints is a note a human once had to give.** Before rendering, `build.mjs`
+checks the safe zone, an emphasis with no word to land on, a check mark sitting on its word, a marker split by a
+line break, a font that never loaded, collage tiles that are frames of this reel or the same picture twice, and
+any `never` page; `collage.mjs` refuses repeats. After rendering, `qa.py` flags a big pure-black patch near a cut
+(a page painted outside its slot). Fix it; don't explain it.
+
 **Look at `qa/<name>-cuts.jpg` before anyone else sees the cut.** It is one ten-frame strip per transition:
 ghosted titles, a line arriving early, an empty frame or a flash of black show up there and nowhere else, because
-a one-per-second sheet steps right over them. Fix, render again (about a minute), look again. The reel in the
+a one-per-second sheet steps right over them. Then look at the frames around each move at full size for what no
+script can judge: a reflection that doesn't track one fixed light, more than one ring per moment, a line that starts
+on a card but runs behind it, flowing data too small to see on a phone. Fix, render again (about a minute), look again. The reel in the
 README went through that loop twice before a human saw it.
 
 Open the sheet and the first frame yourself. Then send the human the file, one line per change, the spend
@@ -195,6 +225,12 @@ free (words, timing, drawn scenes). Say the cost of any note that isn't, before 
 | A small logo beside the name (reads as a letter) | Logo in its own app-icon tile, above the name; the name arrives after it |
 | A number on screen you haven't re-checked that day | Re-check every number against its live source on render day |
 | "Done" before a cold viewer has watched it | Test it; their "what's this for?" is the finish line |
+| A highlight measured before the web font loads | Hang every emphasis off its word, sized in em. A width read at build time is the fallback font's: the marker came up short of its word and the check mark sat on it |
+| A glare that sweeps on its own | Compute it from the surface's tilt, as if one light is fixed in the room. A free sweep "appears on one side, goes away, then appears on the other" |
+| A shockwave ring on every line | One ring per moment; the repeats read as "a bit much" |
+| Lines that start on a card and run behind it; one pass of tiny dots | Draw them over the card; flowing data needs a head, a glow, a tail and a steady stream to read on a phone |
+| A collage of the reel's own frames | Sixteen different pieces of the thing's own work; never the page that says the closing line |
+| A page that flies in before its slot and shows as a black box | The kit plays every clip from 0.4 s before its cut to 0.45 s after; `qa.py` flags black holes near cuts |
 | Paid generation without a yes and a number | `gen.py` without `--yes` prints the cost; ask |
 | Re-submitting a paid job because the log went quiet | It prints every poll; a failed poll is "unknown". Check the vendor dashboard first |
 
@@ -218,4 +254,4 @@ motif carried through, transitions that transform the frame, a camera that never
 then-inspect-every-transition loop come from his HyperFrames video and `hyperframes-student-kit`; storyboarding
 hero frames before the full render comes from Jay E's (RoboNuggets) video on directing video with Opus 5.5.
 Rendering is [HyperFrames](https://github.com/heygen-com/hyperframes) by HeyGen (Apache-2.0) with GSAP. The rest
-was learned the hard way over seventeen versions of one reel.
+was learned the hard way over twenty-two versions of one reel.

@@ -7,6 +7,7 @@
   ],
   "fps": 30,
   "budget_usd": 15,
+  "never": [],
   "palette": {
     "ground": "#111114",
     "card": "#18181b",
@@ -45,7 +46,11 @@
     },
     "t_turn": {
       "kind": "card",
-      "text": "This one<br>remembers<br><span class=a>everything.</span>"
+      "text": "This one<br>remembers<br><span class=a>everything.</span>",
+      "em": {
+        "fx": "pulse",
+        "b": 3
+      }
     },
     "t_layers": {
       "kind": "lower",
@@ -57,7 +62,11 @@
     },
     "t_page": {
       "kind": "lower",
-      "text": "Real work,<br>on the record."
+      "text": "Real work,<br>on the <span class=a>record.</span>",
+      "em": {
+        "fx": "box",
+        "b": 1
+      }
     },
     "t_sources": {
       "kind": "lower",
@@ -186,7 +195,8 @@
           0,
           1,
           2
-        ]
+        ],
+        "style": "flap"
       },
       "in": "dot"
     },
@@ -222,7 +232,8 @@
           0,
           "end"
         ]
-      ]
+      ],
+      "in": "rise"
     },
     {
       "name": "s05_sources",
@@ -236,23 +247,25 @@
           0,
           "end"
         ]
-      ]
+      ],
+      "in": "whipx"
     },
     {
       "name": "s06_grid",
       "beats": 3,
       "source": {
         "grid": [
-          "@2.0",
-          "@8.5",
-          "@12",
-          "@16",
-          "rec/page/f0045.jpg",
-          "@22",
-          "@5",
-          "@14",
-          "rec/page/f0080.jpg"
-        ]
+          "stills/collage/t01.jpg",
+          "stills/collage/t02.jpg",
+          "stills/collage/t03.jpg",
+          "stills/collage/t04.jpg",
+          "stills/collage/t05.jpg",
+          "stills/collage/t06.jpg",
+          "stills/collage/t07.jpg",
+          "stills/collage/t08.jpg",
+          "stills/collage/t09.jpg"
+        ],
+        "cols": 3
       },
       "in": "cut"
     },
@@ -266,7 +279,7 @@
           1.5
         ]
       },
-      "in": "zoom"
+      "in": "over"
     },
     {
       "name": "s08_end",
@@ -279,5 +292,52 @@
   ],
   "cover": {
     "at": 2.0
+  },
+  "collage": {
+    "out": "stills/collage",
+    "tiles": [
+      {
+        "cover": "src/covers/post-1.webp",
+        "kicker": "BUILD LOG NO. 001",
+        "title": "The first thing you shipped"
+      },
+      {
+        "image": "src/vis/dashboard.jpg",
+        "kicker": "INSTRUMENT \u00b7 USAGE"
+      },
+      {
+        "cover": "src/covers/post-2.webp",
+        "kicker": "FIELD REPORT NO. 001",
+        "title": "The first thing you measured"
+      },
+      {
+        "image": "src/vis/chart.jpg",
+        "kicker": "FIELD REPORT NO. 002"
+      },
+      {
+        "cover": "src/covers/post-3.webp",
+        "kicker": "NOTE NO. 001",
+        "title": "An argument you made"
+      },
+      {
+        "image": "src/vis/diagram.jpg",
+        "kicker": "BUILD LOG NO. 002"
+      },
+      {
+        "cover": "src/covers/post-4.webp",
+        "kicker": "BUILD LOG NO. 003",
+        "title": "Another build"
+      },
+      {
+        "image": "src/vis/ui.webp",
+        "kicker": "BUILD LOG NO. 004",
+        "fill": true
+      },
+      {
+        "cover": "src/covers/post-5.webp",
+        "kicker": "FIELD REPORT NO. 003",
+        "title": "Another finding"
+      }
+    ]
   }
 }
